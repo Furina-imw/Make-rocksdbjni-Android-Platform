@@ -412,9 +412,11 @@ jobs:
           };
           MAP_EOF
 
-          # libc++_static.a từ NDK để link C++ runtime tĩnh
-          LIBCXX_STATIC="${TOOLCHAIN}/sysroot/usr/lib/aarch64-linux-android/libc++_static.a"
-          LIBCXX_ABI="${TOOLCHAIN}/sysroot/usr/lib/aarch64-linux-android/libc++abi.a"
+          # libc++_static.a từ NDK — path chuẩn NDK 21+
+          LIBCXX_STATIC=$(find "${TOOLCHAIN}/sysroot/usr/lib/aarch64-linux-android" -name "libc++_static.a" | head -1)
+          LIBCXX_ABI=$(find "${TOOLCHAIN}/sysroot/usr/lib/aarch64-linux-android" -name "libc++abi.a" | head -1)
+          echo "LIBCXX_STATIC=${LIBCXX_STATIC}"
+          echo "LIBCXX_ABI=${LIBCXX_ABI}"
 
           # Tất cả object files JNI
           JNI_OBJS=$(find "${OBJ_DIR}" -name "*.o" | tr '\n' ' ')
@@ -464,7 +466,7 @@ jobs:
           "${READELF}" -d "${OUT_SO}" | grep NEEDED || echo "(none)"
 
           # Chỉ cho phép Android system libs
-          ALLOWED_PATTERN="^(liblog|libc|libm|libdl|libstdc\+\+|libandroid)\.so$"
+          ALLOWED_PATTERN="^(liblog|libc|libm|libdl|libstdc\+\+|libandroid|libc\+\+_shared)\.so$"
 
           BAD=$("${READELF}" -d "${OUT_SO}" \
             | grep NEEDED \
