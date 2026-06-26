@@ -353,6 +353,7 @@ jobs:
 
           JNI_SRC_DIR="${{ github.workspace }}/java/rocksjni"
           INCLUDE_FLAGS="\
+            -I${{ github.workspace }} \
             -I${{ github.workspace }}/include \
             -I${{ github.workspace }}/java \
             -I${{ github.workspace }}/java/rocksjni \
