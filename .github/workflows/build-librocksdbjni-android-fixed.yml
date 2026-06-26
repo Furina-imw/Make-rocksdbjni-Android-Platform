@@ -365,7 +365,7 @@ jobs:
             -DOS_ANDROID -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX"
 
           # Test-only files: no JNI headers generated for them, skip safely
-          SKIP_FILES="native_comparator_wrapper_test.cc rocksdb_exception_test.cc testable_event_listener.cc"
+          SKIP_FILES="native_comparator_wrapper_test.cc rocksdb_exception_test.cc testable_event_listener.cc write_batch_test.cc"
 
           FAILED=0
           for src in "${JNI_SRC_DIR}"/*.cc; do
