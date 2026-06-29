@@ -121,14 +121,18 @@ jobs:
         working-directory: jdk-src
         run: |
           ELF_HPP="src/hotspot/share/utilities/elfFile.hpp"
-          # NDK dùng ELF_ST_TYPE(x) là function-like macro, OpenJDK muốn dùng như object macro
-          # Thêm #undef ELF_ST_TYPE và guard ELF64_ST_TYPE trước dòng redefine
+          # elfFile.hpp define ELF_ST_TYPE = ELF64_ST_TYPE (object macro)
+          # Nhưng NDK đã define ELF_ST_TYPE(x) là function-like macro
+          # → phải undef ELF_ST_TYPE của NDK và redefine là function-like macro
+          # Thay thế dòng: #define ELF_ST_TYPE ELF64_ST_TYPE
+          # Bằng:          #undef ELF_ST_TYPE
+          #                #define ELF_ST_TYPE(x) ELF64_ST_TYPE(x)
           if grep -q "define ELF_ST_TYPE ELF64_ST_TYPE" "$ELF_HPP"; then
-            sed -i 's/#define ELF_ST_TYPE ELF64_ST_TYPE/\/* Android NDK compat *\/\n#ifndef ELF64_ST_TYPE\n#define ELF64_ST_TYPE(x) ((x) \& 0xf)\n#endif\n#undef ELF_ST_TYPE\n#define ELF_ST_TYPE ELF64_ST_TYPE/' "$ELF_HPP"
+            sed -i 's/#define ELF_ST_TYPE ELF64_ST_TYPE/#undef ELF_ST_TYPE\n#define ELF_ST_TYPE(x) ELF64_ST_TYPE(x)/' "$ELF_HPP"
             echo "Patch applied OK"
             grep -n "ELF_ST_TYPE\|ELF64" "$ELF_HPP" | head -15
           else
-            echo "WARNING: target not found in $ELF_HPP"
+            echo "WARNING: target not found"
             grep -n "ELF_ST_TYPE\|ELF64" "$ELF_HPP" | head -15
             exit 1
           fi
