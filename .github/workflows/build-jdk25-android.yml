@@ -1,4 +1,4 @@
-name: Build JRE 25 for Android arm64-v8a (Fixed & Optimized)
+name: Build JRE 25 for Android arm64-v8a (Fixed Cross-Compile)
 
 on:
   workflow_dispatch:
@@ -38,16 +38,26 @@ jobs:
 
       - name: Clone OpenJDK 25 Source Code
         run: |
-          # THAY ĐỔI QUAN TRỌNG: Chỉ định nhánh jdk25 thay vì nhánh master
           git clone --depth 1 -b jdk25 https://github.com/openjdk/jdk.git jdk25
 
-      - name: Configure OpenJDK (Headless & Bundled)
+      - name: Configure OpenJDK (Explicit NDK Compilers)
         run: |
           cd jdk25
+          # Xác định đường dẫn toolchain của NDK
+          TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64
+          
+          # ÉP BUỘC OpenJDK dùng Clang của NDK thay vì GCC của máy host
+          export CC=$TOOLCHAIN/bin/aarch64-linux-android24-clang
+          export CXX=$TOOLCHAIN/bin/aarch64-linux-android24-clang++
+          export AR=$TOOLCHAIN/bin/llvm-ar
+          export NM=$TOOLCHAIN/bin/llvm-nm
+          export STRIP=$TOOLCHAIN/bin/llvm-strip
+          export OBJCOPY=$TOOLCHAIN/bin/llvm-objcopy
+          export OBJDUMP=$TOOLCHAIN/bin/llvm-objdump
+
           bash configure \
             --openjdk-target=aarch64-linux-android \
-            --with-sysroot=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot \
-            --with-toolchain-path=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin \
+            --with-sysroot=$TOOLCHAIN/sysroot \
             --with-boot-jdk=$JAVA_HOME \
             --disable-warnings-as-errors \
             --enable-unlimited-crypto \
