@@ -131,6 +131,10 @@ jobs:
           ln -sf $TOOLCHAIN/bin/llvm-nm    $HOME/ndk-tools/nm
           export PATH="$HOME/ndk-tools:$PATH"
 
+          # Bypass X11 header checks — configure dùng cross-compiler nên không thấy host headers
+          # Khai báo trước để autoconf skip kiểm tra thực tế
+          export ac_cv_have_x="have_x=yes ac_x_includes=/usr/include ac_x_libraries=/usr/lib/x86_64-linux-gnu"
+
           bash configure \
             --openjdk-target=aarch64-linux-android \
             --with-toolchain-type=clang \
