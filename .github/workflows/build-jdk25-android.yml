@@ -139,7 +139,7 @@ jobs:
             --with-extra-cxxflags="-I${ANDROID_SYSROOT}/include -fPIC -DANDROID -D__ANDROID_API__=${{ env.ANDROID_API }}" \
             --with-extra-ldflags="-L${ANDROID_SYSROOT}/lib -L${SYSROOT}/usr/lib/aarch64-linux-android/${{ env.ANDROID_API }}" \
             \
-            --with-freetype=bundled \
+            --with-freetype=system \
             --with-freetype-lib=${ANDROID_SYSROOT}/lib \
             --with-freetype-include=${ANDROID_SYSROOT}/include/freetype2 \
             \
