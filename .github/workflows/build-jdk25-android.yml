@@ -209,7 +209,7 @@ jobs:
       - name: Build JRE
         working-directory: jdk-src
         run: |
-          make jre JOBS=$(nproc) 2>&1 | tee build.log
+          make jre-image JOBS=$(nproc) 2>&1 | tee build.log
 
       - name: Upload build log (nếu thất bại)
         if: failure()
