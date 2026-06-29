@@ -1,4 +1,4 @@
-name: Build JRE 25 for Android arm64-v8a (Fixed Disk Space)
+name: Build JRE 25 for Android arm64-v8a (Fixed Cross-Compile)
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
       - name: Maximize disk space
         uses: easimon/maximize-build-space@v10
         with:
-          root-reserve-mb: 20480 # Đã giảm từ 51200 xuống 20480 để tránh hết chỗ cài Boot JDK
+          root-reserve-mb: 20480
           swap-size-mb: 1024
 
       - name: Install minimal build dependencies
@@ -36,14 +36,56 @@ jobs:
           echo "ANDROID_NDK_HOME=$PWD/android-ndk-r27c" >> $GITHUB_ENV
           echo "ANDROID_NDK=$PWD/android-ndk-r27c" >> $GITHUB_ENV
 
-      - name: Create NDK Toolchain Symlinks (Fake GCC)
+      - name: Create NDK Toolchain Wrappers (Fake GCC)
         run: |
           mkdir -p $GITHUB_WORKSPACE/toolchain/bin
           NDK_BIN=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin
           
-          # Tạo symlink giả lập GCC để qua mặt configure script của OpenJDK
-          ln -sf $NDK_BIN/aarch64-linux-android24-clang $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-gcc
-          ln -sf $NDK_BIN/aarch64-linux-android24-clang++ $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-g++
+          # Tạo wrapper script giả lập GCC cho C compiler
+          cat > $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-gcc << 'EOF'
+#!/bin/bash
+REAL_CC="__NDK_BIN__/aarch64-linux-android24-clang"
+case "$1" in
+    --version|-v)
+        echo "gcc (GCC) 13.0.0"
+        exit 0
+        ;;
+    -dumpversion)
+        echo "13.0.0"
+        exit 0
+        ;;
+    -dumpfullversion)
+        echo "13.0.0"
+        exit 0
+        ;;
+esac
+exec "$REAL_CC" "$@"
+EOF
+          chmod +x $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-gcc
+          sed -i "s|__NDK_BIN__|$NDK_BIN|g" $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-gcc
+          
+          # Tạo wrapper script giả lập G++ cho C++ compiler
+          cat > $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-g++ << 'EOF'
+#!/bin/bash
+REAL_CXX="__NDK_BIN__/aarch64-linux-android24-clang++"
+case "$1" in
+    --version|-v)
+        echo "g++ (GCC) 13.0.0"
+        exit 0
+        ;;
+    -dumpversion)
+        echo "13.0.0"
+        exit 0
+        ;;
+    -dumpfullversion)
+        echo "13.0.0"
+        exit 0
+        ;;
+esac
+exec "$REAL_CXX" "$@"
+EOF
+          chmod +x $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-g++
+          sed -i "s|__NDK_BIN__|$NDK_BIN|g" $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-g++
           
           # Tạo symlink cho các công cụ LLVM khác với tiền tố chuẩn
           for tool in ar nm strip objcopy objdump readelf c++filt dwp ranlib as ld profdata; do
@@ -51,8 +93,8 @@ jobs:
           done
           
           # Also create non-prefixed symlinks
-          ln -sf $NDK_BIN/aarch64-linux-android24-clang $GITHUB_WORKSPACE/toolchain/bin/gcc
-          ln -sf $NDK_BIN/aarch64-linux-android24-clang++ $GITHUB_WORKSPACE/toolchain/bin/g++
+          ln -sf $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-gcc $GITHUB_WORKSPACE/toolchain/bin/gcc
+          ln -sf $GITHUB_WORKSPACE/toolchain/bin/aarch64-linux-android-g++ $GITHUB_WORKSPACE/toolchain/bin/g++
           ln -sf $NDK_BIN/llvm-ar $GITHUB_WORKSPACE/toolchain/bin/ar
           ln -sf $NDK_BIN/llvm-nm $GITHUB_WORKSPACE/toolchain/bin/nm
           ln -sf $NDK_BIN/llvm-strip $GITHUB_WORKSPACE/toolchain/bin/strip
@@ -114,7 +156,3 @@ jobs:
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
-        with:
-          name: jre-25-android-arm64-v8a
-          path: jre-25-android-arm64-v8a.tar.xz
-          retention-days: 14
